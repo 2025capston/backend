@@ -118,4 +118,16 @@ public class MatchRequestService {
         request.setStatus(MatchStatus.CONFIRMED);
         matchRequestRepository.save(request);
     }
+
+    @Transactional
+    public void cancelMatchRequest(Long requestId, Long userId) {
+        MatchRequest matchRequest = matchRequestRepository.findById(requestId)
+                .orElseThrow(()-> new RuntimeException("매칭 신청이 존재하지 않습니다."));
+        //이미 취소된 경우 방지
+        if(matchRequest.getStatus()==MatchStatus.CANCELLED){
+            throw new RuntimeException("이미 취소된 매칭입니다.");
+        }
+        matchRequest.setStatus(MatchStatus.CANCELLED);
+        matchRequestRepository.save(matchRequest);
+    }
 }

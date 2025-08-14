@@ -64,6 +64,15 @@ public class MatchRequestController {
         matchRequestService.confirmSchedule(requestId, dateOptionId, timeOptionId, placeOptionId);
         return ResponseEntity.ok().build();
     }
+    @PostMapping("/{requestId}/cancel")
+    public ResponseEntity<Void> cancelMatchRequest(
+            @PathVariable Long requestId,
+            @RequestParam Long userId) { // 로그인 구현되면 @AuthenticationPrincipal로 변경 가능
+        matchRequestService.cancelMatchRequest(requestId, userId);
+        return ResponseEntity.ok().build();
+    }
+
+
 
 
 
