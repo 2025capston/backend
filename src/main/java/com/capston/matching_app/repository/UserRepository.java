@@ -1,4 +1,5 @@
 package com.capston.matching_app.repository;
 
-public interface UserRepository {
-}
+import com.capston.matching_app.entity.User;
+import org.springframework.data.jpa.repository.JpaRepository;
+public interface UserRepository extends JpaRepository<User, Integer> {}

@@ -1,22 +1,19 @@
 package com.capston.matching_app.entity;
 
 import jakarta.persistence.*;
-import lombok.*;
+import lombok.Data;
+import org.hibernate.annotations.CreationTimestamp;
 
-//실제 구현이 아니라, MatchRequest 테스트용 임시 버전
-// 따라서 id, name, email 정도만 넣어둠
-//나중에 팀원이 만든 User로 갈아끼우면 됨
+import java.time.LocalDateTime;
 
 @Entity
 @Table(name = "users")
-@Getter @Setter
-@NoArgsConstructor @AllArgsConstructor
-@Builder
+@Data
 public class User {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long userId; // PK
+    private Integer userId;
 
     @Column(nullable = false, length = 100)
     private String name;
@@ -24,5 +21,13 @@ public class User {
     @Column(nullable = false, unique = true, length = 100)
     private String email;
 
-    // 비밀번호나 기타 컬럼은 생략
+    @Column(name = "password_hash", nullable = false, length = 255)
+    private String passwordHash;
+
+    @Column(name = "phone_number", length = 20)
+    private String phoneNumber;
+
+    @Column(name = "created_at", nullable = false, updatable = false)
+    @CreationTimestamp
+    private LocalDateTime createdAt;
 }
