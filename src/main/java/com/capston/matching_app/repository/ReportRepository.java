@@ -1,0 +1,10 @@
+package com.capston.matching_app.repository;
+
+import com.capston.matching_app.entity.Report;
+import org.springframework.data.jpa.repository.JpaRepository;
+
+import java.util.List;
+
+public interface ReportRepository extends JpaRepository<Report, Long> {
+    List<Report> findAllByOrderByReportTimeDesc();
+}
