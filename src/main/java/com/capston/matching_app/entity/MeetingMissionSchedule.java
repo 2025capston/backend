@@ -5,6 +5,8 @@ import lombok.*;
 
 import java.time.LocalDateTime;
 
+//이건 약속시간 -3시간 시각 저장하는 엔터티
+
 @Entity
 @Table(name = "meeting_mission_schedule")
 @Getter
@@ -12,7 +14,7 @@ import java.time.LocalDateTime;
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
-public class MeetingMissionSechule {
+public class MeetingMissionSchedule {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;

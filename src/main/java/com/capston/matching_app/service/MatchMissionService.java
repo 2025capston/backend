@@ -15,6 +15,9 @@ import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Random;
 
+//이건 확정된 매칭에 미션 배정하는 역할임
+// MatchSelectedSerive는 scheuled_time 저장하는 로직(배정로직)
+
 @Service
 @RequiredArgsConstructor
 public class MatchMissionService {
@@ -29,7 +32,7 @@ public class MatchMissionService {
 
         //2.오늘 미션 랜덤 선택
         List<DailyMission> missions = dailyMissionRepository.findAll();
-        if(missions.isEmpty()){
+        if (missions.isEmpty()) {
             throw new IllegalStateException("등록된 미션이 없습니다.");
         }
         Random random = new Random();
@@ -38,7 +41,7 @@ public class MatchMissionService {
         List<MatchRequest> confirmedMatches = matchRequestRepository.findByStatus(MatchStatus.CONFIRMED);
 
         //4.각 매칭에 미션 배정
-        for (MatchRequest match : confirmedMatches){
+        for (MatchRequest match : confirmedMatches) {
             DailyMission selectedMission = missions.get(random.nextInt(missions.size()));
             MatchMission matchMission = MatchMission.builder()
                     .matchRequest(match)
