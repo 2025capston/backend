@@ -23,7 +23,7 @@ public class ReportService {
     public Report createReport(ReportRequestDTO dto){
         MatchRequest matchRequest = matchRequestRepository.findById(dto.getRequestId())
                 .orElseThrow(()-> new RuntimeException("존재하지 않는 매칭 요청입니다."));
-        User reporter = userRepository.findById(dto.getReporterUserId())
+        User reporter = userRepository.findById(Math.toIntExact(dto.getReporterUserId()))
                 .orElseThrow(()-> new RuntimeException("존재하지 않는 사용자입니다."));
         Report report = Report.builder()
                 .matchRequest(matchRequest)

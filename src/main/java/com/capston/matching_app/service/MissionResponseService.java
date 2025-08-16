@@ -26,7 +26,7 @@ public class MissionResponseService {
                 .orElseThrow(()->new IllegalArgumentException("존재하지 않는 매칭 미션입니다."));
 
         //이거 지금 userRepository없어서 -> 나중에 팀원한테 받고 수정할 예정
-        User user = userRepository.findById(userId)
+        User user = userRepository.findById(Math.toIntExact(userId))
                 .orElseThrow(()->new IllegalArgumentException("존재하지 않는 사용자입니다."));
         MissionResponse response = MissionResponse.builder()
                 .matchMission(matchMission)
@@ -48,12 +48,12 @@ public class MissionResponseService {
 
         //2. 요청한 사용자와 상대방 응답 구분
         MissionResponse myResponse = responses.stream()
-                .filter(r -> r.getUser().getId().equals(userId))
+                .filter(r -> r.getUser().getUserId().equals(userId))
                 .findFirst()
                 .orElseThrow(() -> new IllegalArgumentException("내 응답을 찾을 수 없습니다."));
 
         MissionResponse partnerResponse = responses.stream()
-                .filter(r -> !r.getUser().getId().equals(userId))
+                .filter(r -> !r.getUser().getUserId().equals(userId))
                 .findFirst()
                 .orElseThrow(()->new IllegalArgumentException("상대방 응답을 찾을 수 없습니다."));
         //3.DTO로 변환

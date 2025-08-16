@@ -34,8 +34,8 @@ public class MatchRequestService {
                 .toUser(toUser) //신청대기자
                 .status(MatchStatus.valueOf(dto.getStatus())) //상태 : 대기, 수락, 거절
                 .requestTime(LocalDateTime.now()) //현재시각
-                .meetingResult(dto.getMeetingResult()) //매칭결과
-                .matchKeepStatus(dto.getMatchKeepStatus()) //유지여부
+                .meetingResult(MeetingResult.valueOf(dto.getMeetingResult()))//매칭결과
+                .matchKeepStatus(MatchKeepStatus.valueOf(dto.getMatchKeepStatus())) //유지여부
                 .build();
         //DB저장
         MatchRequest saved = matchRequestRepository.save(matchRequest);
@@ -56,12 +56,12 @@ public class MatchRequestService {
     private MatchRequestDTO convertToDTO(MatchRequest entity) {
         return MatchRequestDTO.builder()
                 .id(entity.getId()) // PK
-                .fromUserId(entity.getFromUser().getUserId()) // 신청자 ID
-                .toUserId(entity.getToUser().getUserId())     // 신청 대상자 ID
+                .fromUserId(Long.valueOf(entity.getFromUser().getUserId())) // 신청자 ID
+                .toUserId(Long.valueOf(entity.getToUser().getUserId()))     // 신청 대상자 ID
                 .status(entity.getStatus().name())              // 상태
                 .requestTime(entity.getRequestTime())         // 신청 시간
-                .meetingResult(entity.getMeetingResult())     // 매칭 결과
-                .matchKeepStatus(entity.getMatchKeepStatus()) // 유지 여부
+                .meetingResult(String.valueOf(entity.getMeetingResult()))     // 매칭 결과
+                .matchKeepStatus(String.valueOf(entity.getMatchKeepStatus())) // 유지 여부
                 .build();
     }
 
@@ -130,4 +130,24 @@ public class MatchRequestService {
         matchRequest.setStatus(MatchStatus.CANCELLED);
         matchRequestRepository.save(matchRequest);
     }
+    @Transactional
+    public void updateMeetingResult(Long requestId, String result) {
+        MatchRequest request = matchRequestRepository.findById(requestId)
+                .orElseThrow(() -> new RuntimeException("매칭 신청이 존재하지 않습니다."));
+        request.setMeetingResult(MeetingResult.valueOf(result)); // "SUCCESS" or "FAIL"
+        matchRequestRepository.save(request);
+    }
+
+    @Transactional
+    public void updateMatchKeepStatus(Long requestId, String status) {
+        MatchRequest request = matchRequestRepository.findById(requestId)
+                .orElseThrow(() -> new RuntimeException("매칭 신청이 존재하지 않습니다."));
+        if (!"SUCCESS".equals(request.getMeetingResult())) {
+            throw new IllegalStateException("성사된 만남만 유지/해제할 수 있습니다.");
+        }
+        request.setMatchKeepStatus(MatchKeepStatus.valueOf(status)); // "KEEP" or "END"
+        matchRequestRepository.save(request);
+    }
+
+
 }

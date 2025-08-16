@@ -24,7 +24,7 @@ public class OutfitSubmissionService {
         MatchRequest matchRequest = matchRequestRepository.findById(matchRequestId)
                 .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 매칭입니다."));
 
-        User user = userRepository.findById(userId)
+        User user = userRepository.findById(Math.toIntExact(userId))
                 .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 사용자입니다."));
 
         OutfitSubmission submission = OutfitSubmission.builder()

@@ -40,11 +40,12 @@ public class MatchRequest {
     private LocalDateTime requestTime; //매칭 신청한 시각
 
     //null허용 -> 매칭 이후 결과 없을 수도 있기 때문
-    private  String meetingResult; //성사, 안됨, null
+    @Enumerated(EnumType.STRING)
+    private MeetingResult meetingResult; // 성사/불발
 
     //null허용 -> 매칭 유지 상태가 아직 정해지지 않을 수도 있기에
-    private String matchKeepStatus; //매칭 유지 여부 : 유지, 해지, null
-
+    @Enumerated(EnumType.STRING)
+    private MatchKeepStatus matchKeepStatus; //매칭 유지 여부 : 유지, 해지
 
 
 }

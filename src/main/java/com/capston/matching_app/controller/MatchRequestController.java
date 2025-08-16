@@ -22,8 +22,8 @@ public class MatchRequestController {
     public MatchRequestDTO createMatchRequest(@RequestBody MatchRequestDTO dto) {
         //fromUser, toUser를 DB에서 조회해서 넣어야 함 -> 팀원 UserRepository 구현되면 가져오기
         //지금은 임시 ID만 가진 User객체 생성
-        User fromUser = User.builder().userId(dto.getFromUserId()).build();
-        User toUser = User.builder().userId(dto.getToUserId()).build();
+        User fromUser = User.builder().userId(Math.toIntExact(dto.getFromUserId())).build();
+        User toUser = User.builder().userId(Math.toIntExact(dto.getToUserId())).build();
 
         return matchRequestService.createMatchRequest(dto, fromUser,toUser);
     }
@@ -69,6 +69,23 @@ public class MatchRequestController {
             @PathVariable Long requestId,
             @RequestParam Long userId) { // 로그인 구현되면 @AuthenticationPrincipal로 변경 가능
         matchRequestService.cancelMatchRequest(requestId, userId);
+        return ResponseEntity.ok().build();
+    }
+    @PostMapping("/{requestId}/meeting-result")
+    public ResponseEntity<Void> updateMeetingResult(
+            @PathVariable Long requestId,
+            @RequestParam String result // "SUCCESS" or "FAIL"
+    ) {
+        matchRequestService.updateMeetingResult(requestId, result);
+        return ResponseEntity.ok().build();
+    }
+
+    @PostMapping("/{requestId}/keep-status")
+    public ResponseEntity<Void> updateMatchKeepStatus(
+            @PathVariable Long requestId,
+            @RequestParam String status // "KEEP" or "END"
+    ) {
+        matchRequestService.updateMatchKeepStatus(requestId, status);
         return ResponseEntity.ok().build();
     }
 

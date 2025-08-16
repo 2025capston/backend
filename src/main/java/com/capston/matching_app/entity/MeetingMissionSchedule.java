@@ -24,7 +24,7 @@ public class MeetingMissionSchedule {
     private MatchRequest matchRequest;
 
     @Column(name = "scheduled_time", nullable = false)
-    private LocalDateTime scheuledTime;
+    private LocalDateTime scheduledTime;
 
     @Column(name = "is_triggered", nullable = false)
     private boolean triggered = false; //미션 생성여부 체크

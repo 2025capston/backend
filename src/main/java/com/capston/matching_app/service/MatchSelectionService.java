@@ -1,11 +1,7 @@
 package com.capston.matching_app.service;
 
-import com.capston.matching_app.entity.MatchRequest;
-import com.capston.matching_app.entity.MatchSelection;
-import com.capston.matching_app.entity.MeetingMissionSchedule;
-import com.capston.matching_app.repository.MatchRequestRepository;
-import com.capston.matching_app.repository.MatchSelectionRepository;
-import com.capston.matching_app.repository.MeetingMissionScheduleRepository;
+import com.capston.matching_app.entity.*;
+import com.capston.matching_app.repository.*;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -21,25 +17,32 @@ public class MatchSelectionService {
     private final MeetingMissionScheduleRepository scheduleRepository;
     private final MatchRequestRepository matchRequestRepository;
     private final MatchSelectionRepository matchSelectionRepository;
+    private final MatchDateOptionRepository matchDateOptionRepository;
+    private final MatchTimeOptionRepository matchTimeOptionRepository;
+    private final MatchPlaceOptionRepository matchPlaceOptionRepository;
 
     @Transactional
-    public void confirmMatch(Long requestId, LocalDate selectedDate, LocalTime selectedTime, Long placeId) {
-        // MatchSelection 저장 로직...
+    public void confirmMatch(Long requestId, Long dateOptionId, Long timeOptionId, Long placeOptionId) {
         MatchRequest matchRequest = matchRequestRepository.findById(requestId)
                 .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 매칭 요청입니다."));
 
-        MatchSelection selection = new MatchSelection();
-        selection.setRequest(matchRequest);
-        selection.setSelectedDate(selectedDate);
-        selection.setSelectedTime(selectedTime);
-        selection.setSelectedPlaceId(placeId);
+        MatchDateOption dateOption = matchDateOptionRepository.findById(dateOptionId)
+                .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 날짜 옵션입니다."));
+        MatchTimeOption timeOption = matchTimeOptionRepository.findById(timeOptionId)
+                .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 시간 옵션입니다."));
+        MatchPlaceOption placeOption = matchPlaceOptionRepository.findById(placeOptionId)
+                .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 장소 옵션입니다."));
+
+        MatchSelection selection = new MatchSelection(matchRequest, dateOption, timeOption, placeOption);
         matchSelectionRepository.save(selection);
 
-        // 약속 시간 -3시간 계산
-        LocalDateTime meetingTime = LocalDateTime.of(selectedDate, selectedTime);
+        // 약속 시간 가져오기
+        LocalDateTime meetingTime = LocalDateTime.of(
+                dateOption.getDate(),
+                timeOption.getTime()
+        );
         LocalDateTime missionTime = meetingTime.minusHours(3);
 
-        // 예약 저장
         MeetingMissionSchedule schedule = MeetingMissionSchedule.builder()
                 .matchRequest(matchRequest)
                 .scheduledTime(missionTime)
@@ -47,5 +50,6 @@ public class MatchSelectionService {
 
         scheduleRepository.save(schedule);
     }
+
 }
 
