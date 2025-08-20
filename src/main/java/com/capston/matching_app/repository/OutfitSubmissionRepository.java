@@ -9,7 +9,7 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import java.time.LocalDate;
 
 public interface OutfitSubmissionRepository extends JpaRepository<OutfitSubmission, Long> {
-    boolean existsByMatchRequestsAndUserAndSubmissionDate(
-            MatchRequest matchRequest, User user, LocalDate submissionDate
-            );
+    boolean existsByMatchRequestAndUserAndSubmissionDate(
+            MatchRequest matchRequest, User user, LocalDate submissionDate);
+
 }

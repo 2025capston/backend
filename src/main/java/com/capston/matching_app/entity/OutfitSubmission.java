@@ -22,7 +22,7 @@ public class OutfitSubmission {
 
     //어떤 매칭에서 제출한 건지
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "match_id", nullable = false)
+    @JoinColumn(name = "match_request_id", nullable = false)
     private MatchRequest matchRequest;
 
     //제출한 유저
