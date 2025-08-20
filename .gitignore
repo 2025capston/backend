@@ -35,3 +35,9 @@ out/
 
 ### VS Code ###
 .vscode/
+
+# Local config & uploads
+/src/main/resources/application-local.yml
+/uploads/
+./uploads/
+**/user-photos/
