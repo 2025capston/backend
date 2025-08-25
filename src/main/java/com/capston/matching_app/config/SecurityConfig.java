@@ -20,10 +20,10 @@ import org.springframework.security.web.authentication.UsernamePasswordAuthentic
 @Configuration
 @RequiredArgsConstructor
 public class SecurityConfig {
+
     private final JwtAuthenticationFilter jwtFilter;
     private final UserDetailsService userDetailsService;
     private final PasswordEncoder passwordEncoder;
-
 
     @Bean
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
@@ -31,12 +31,26 @@ public class SecurityConfig {
                 .csrf(csrf -> csrf.disable())
                 .sessionManagement(sm -> sm.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(auth -> auth
-                        .requestMatchers("/api/auth/**", "/actuator/health").permitAll()
-                        .anyRequest().authenticated())
+                        // 익명 허용 범위 확대
+                        .requestMatchers(
+                                "/", "/index", "/index.html",
+                                "/api/auth/**",
+                                "/actuator/health", "/actuator/info",
+                                "/v3/api-docs/**", "/swagger-ui/**",
+                                "/static/**", "/css/**", "/js/**", "/images/**",
+                                "/user-photos/**" // 업로드 공개 경로 쓰면 추가
+                        ).permitAll()
+                        // 그 외는 인증 필요
+                        .anyRequest().authenticated()
+                )
+                // 폼/베이직 인증 비활성 (JWT만 사용할 때)
+                .httpBasic(h -> h.disable())
+                .formLogin(f -> f.disable())
+                .authenticationProvider(authenticationProvider())
                 .addFilterBefore(jwtFilter, UsernamePasswordAuthenticationFilter.class);
+
         return http.build();
     }
-
 
     @Bean
     public AuthenticationProvider authenticationProvider() {
@@ -46,9 +60,9 @@ public class SecurityConfig {
         return provider;
     }
 
-
     @Bean
     public AuthenticationManager authenticationManager(AuthenticationConfiguration config) throws Exception {
         return config.getAuthenticationManager();
     }
 }
+

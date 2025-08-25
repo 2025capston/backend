@@ -2,6 +2,8 @@ package com.capston.matching_app.service;
 
 import com.capston.matching_app.dto.auth.*;
 import com.capston.matching_app.entity.User;
+import com.capston.matching_app.entity.UserProfile;
+import com.capston.matching_app.repository.UserProfileRepository;
 import com.capston.matching_app.repository.UserRepository;
 import com.capston.matching_app.security.JwtTokenProvider;
 import lombok.RequiredArgsConstructor;
@@ -22,6 +24,7 @@ public class AuthService {
     private final PasswordEncoder passwordEncoder;
     private final AuthenticationManager authenticationManager;
     private final JwtTokenProvider jwtTokenProvider;
+    private final UserProfileRepository userProfileRepository;
 
 
     @Transactional
@@ -44,6 +47,12 @@ public class AuthService {
                 .phoneNumber(phone)
                 .build();
         User saved = userRepository.save(user);
+
+        // 가입 시 UserProfile 생성
+        UserProfile profile = new UserProfile();
+        profile.setUser(saved); // @MapsId 때문에 userId 자동 매핑
+        userProfileRepository.save(profile);
+
         return new UserResponseDTO(saved.getUserId(), saved.getName(), saved.getEmail(), saved.getPhoneNumber());
     }
 
