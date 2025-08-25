@@ -63,7 +63,10 @@ public class AuthService {
                 new UsernamePasswordAuthenticationToken(req.getEmail(), req.getPassword()));
 
 
-        String access = jwtTokenProvider.createAccessToken(req.getEmail(), Map.of("role", "ROLE_USER"));
+        String access = jwtTokenProvider.createAccessToken(req.getEmail(), Map.of(
+                "role", "ROLE_USER",
+                "userId", userRepository.findByEmail(req.getEmail()).get().getUserId()
+        ));
         String refresh = jwtTokenProvider.createRefreshToken(req.getEmail());
         return new TokenResponseDTO(access, refresh,"Bearer");
     }

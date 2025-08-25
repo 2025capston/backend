@@ -46,14 +46,22 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
                 logger.info("JWT 인증 성공, 사용자: {}", email);
 
-                UserDetails userDetails = userDetailsService.loadUserByUsername(email);
+               // UserDetails userDetails = userDetailsService.loadUserByUsername(email);
+                CustomUserDetails customUser = (CustomUserDetails) userDetailsService.loadUserByUsername(email);
+                Integer userId = customUser.getUserId();  // SecurityContext에서 꺼낼 수 있음
 
                 // 기본 ROLE_USER 부여
+                //UsernamePasswordAuthenticationToken auth = new UsernamePasswordAuthenticationToken(
+                //        userDetails,
+                //        null,
+                //        List.of(new SimpleGrantedAuthority("ROLE_USER"))
+                //);
                 UsernamePasswordAuthenticationToken auth = new UsernamePasswordAuthenticationToken(
-                        userDetails,
+                        customUser,  // UserDetails 대신 CustomUserDetails
                         null,
-                        List.of(new SimpleGrantedAuthority("ROLE_USER"))
+                        customUser.getAuthorities()
                 );
+
 
                 auth.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
                 SecurityContextHolder.getContext().setAuthentication(auth);
