@@ -27,21 +27,13 @@ public class UserProfileService {
 
     @Transactional
     public UserProfileDTO saveOrUpdateProfile(Integer userId, UserProfileDTO dto) {
-        // 유저 존재 확인 (없으면 404)
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "User not found"));
 
-        // 프로필 조회
-        UserProfile profile = userProfileRepository.findById(userId).orElse(null);
+        UserProfile profile = userProfileRepository.findById(userId)
+                .orElse(new UserProfile());
 
-        if (profile == null) {
-            // 신규 생성: ID를 직접 세팅하지 말고, User만 연결
-            profile = new UserProfile();
-            profile.setUser(user); // @MapsId 가 여기서 user.userId 를 PK로 복사
-        } else {
-            // 기존 엔티티에도 혹시 user 연관이 비어있지 않도록 보장
-            if (profile.getUser() == null) profile.setUser(user);
-        }
+        profile.setUser(user); // 항상 세팅
 
         // 필드 복사
         profile.setGender(dto.getGender());
@@ -51,10 +43,10 @@ public class UserProfileService {
         profile.setDistrict(dto.getDistrict());
         profile.setSexualOrientation(dto.getSexualOrientation());
 
-        // INSERT or UPDATE
         UserProfile saved = userProfileRepository.save(profile);
         return toDTO(saved);
     }
+
 
     private UserProfileDTO toDTO(UserProfile profile) {
         UserProfileDTO dto = new UserProfileDTO();
