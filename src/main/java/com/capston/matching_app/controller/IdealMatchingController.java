@@ -51,5 +51,4 @@ public class IdealMatchingController {
         idealMatchingService.upsertFromWebhook(userId, body.getItems());
         return ResponseEntity.ok(Map.of("ok", true));
     }
-
 }

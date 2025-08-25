@@ -1,58 +1,44 @@
 package com.capston.matching_app.entity;
 
 import jakarta.persistence.*;
-import lombok.Data;
-import jakarta.persistence.OneToOne;
-import jakarta.persistence.MapsId;
-import jakarta.persistence.JoinColumn;
+import lombok.Getter;
+import lombok.Setter;
 
 import java.time.LocalDateTime;
 
 @Entity
 @Table(name = "user_profile")
-@Data
+@Getter
+@Setter
 public class UserProfile {
 
     @Id
     @Column(name = "user_id")
-    private Integer userId;
-
-    @OneToOne
-    @MapsId
-    @JoinColumn(name = "user_id", nullable = false)
-    private User user;
+    private Integer userId; // users.user_id와 동일 (INT)
 
     @Column(length = 10)
     private String gender;
 
-    @Column(name = "birth_year")
     private Integer birthYear;
-
     private Integer height;
 
     @Column(length = 50)
-    private String city;
-
-    @Column(length = 50)
-    private String district;
-
-    @Column(name = "sexual_orientation", length = 50)
     private String sexualOrientation;
 
-    @Column(name = "created_at", nullable = false, updatable = false)
+    // 정규화된 FK
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "region_id")
+    private Region region;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "subregion_id")
+    private Subregion subregion;
+
+    @Column(name = "created_at", updatable = false,
+            columnDefinition = "DATETIME DEFAULT CURRENT_TIMESTAMP")
     private LocalDateTime createdAt;
 
-    @Column(name = "updated_at", nullable = false)
+    @Column(name = "updated_at",
+            columnDefinition = "DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP")
     private LocalDateTime updatedAt;
-
-    @PrePersist
-    protected void onCreate() {
-        createdAt = LocalDateTime.now();
-        updatedAt = LocalDateTime.now();
-    }
-
-    @PreUpdate
-    protected void onUpdate() {
-        updatedAt = LocalDateTime.now();
-    }
 }

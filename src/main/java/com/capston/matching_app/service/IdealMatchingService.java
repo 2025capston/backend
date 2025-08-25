@@ -2,7 +2,13 @@ package com.capston.matching_app.service;
 
 import com.capston.matching_app.dto.IdealMatchDTO;
 import com.capston.matching_app.entity.IdealMatchResult;
+import com.capston.matching_app.entity.Region;
+import com.capston.matching_app.entity.Subregion;
+import com.capston.matching_app.entity.UserProfile;
 import com.capston.matching_app.repository.IdealMatchResultRepository;
+import com.capston.matching_app.repository.RegionRepository;
+import com.capston.matching_app.repository.SubregionRepository;
+import com.capston.matching_app.repository.UserProfileRepository;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
@@ -21,6 +27,7 @@ import org.springframework.web.server.ResponseStatusException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.NoSuchElementException;
 
 @Service
 @RequiredArgsConstructor
@@ -28,6 +35,9 @@ public class IdealMatchingService {
 
     private final IdealTypeService idealTypeService;
     private final IdealMatchResultRepository matchRepo;
+    private final UserProfileRepository userProfileRepository;
+    private final RegionRepository regionRepository;
+    private final SubregionRepository subregionRepository;
     private final ObjectMapper om = new ObjectMapper();
 
     @Value("${external.python.base-url}")
@@ -86,7 +96,7 @@ public class IdealMatchingService {
         }
     }
 
-    /** 파이썬 결과를 가져와 캐시 갱신 후 반환(폴링) */
+    /** 결과 조회(폴링): 파이썬에서 가져와 캐시 갱신 후 반환, 실패 시 캐시 반환 */
     @Transactional
     public List<IdealMatchDTO> fetchAndCacheFromPython(Integer ownerUserId) {
         try {
@@ -106,8 +116,36 @@ public class IdealMatchingService {
                 m.setMatchedUserId(d.getUserId());
                 m.setProfilePhotosJson(om.writeValueAsString(d.getProfilePhotos()));
                 m.setHeight(d.getHeight());
-                m.setCity(d.getCity());
                 m.setRankOrder(rank++);
+
+                // 지역 세팅: 1) DTO에 id가 있으면 그대로 사용  2) 없으면 matched user의 프로필에서 보강
+                Region region = null;
+                Subregion subregion = null;
+
+                if (d.getRegionId() != null) {
+                    region = regionRepository.findById(d.getRegionId())
+                            .orElseThrow(() -> new ResponseStatusException(HttpStatus.BAD_REQUEST, "Invalid regionId in python result"));
+                }
+                if (d.getSubregionId() != null) {
+                    subregion = subregionRepository.findById(d.getSubregionId())
+                            .orElseThrow(() -> new ResponseStatusException(HttpStatus.BAD_REQUEST, "Invalid subregionId in python result"));
+                }
+
+                if (region == null || subregion == null) {
+                    UserProfile up = userProfileRepository.findById(d.getUserId())
+                            .orElseThrow(() -> new ResponseStatusException(HttpStatus.BAD_REQUEST, "No user profile for matched user: " + d.getUserId()));
+                    region = up.getRegion();
+                    subregion = up.getSubregion();
+                }
+
+                // 최종 검증: 소속 일치
+                if (!subregion.getRegion().getId().equals(region.getId())) {
+                    throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "subregion does not belong to region (python result mismatch)");
+                }
+
+                m.setRegion(region);
+                m.setSubregion(subregion);
+
                 matchRepo.save(m);
             }
             return items;
@@ -133,8 +171,20 @@ public class IdealMatchingService {
                 d.setProfilePhotos(List.of());
             }
             d.setHeight(r.getHeight());
-            d.setCity(r.getCity());
             d.setRank(r.getRankOrder());
+
+            // ✅ 캐시에 저장해 둔 region/subregion에서 ID+이름 모두 내려줌
+            Region reg = r.getRegion();
+            Subregion sub = r.getSubregion();
+            if (reg != null) {
+                d.setRegionId(reg.getId());
+                d.setRegionName(reg.getNameKo());
+            }
+            if (sub != null) {
+                d.setSubregionId(sub.getId());
+                d.setSubregionName(sub.getNameKo());
+            }
+
             out.add(d);
         }
         return out;
@@ -152,16 +202,45 @@ public class IdealMatchingService {
                 m.setMatchedUserId(d.getUserId());
                 m.setProfilePhotosJson(om.writeValueAsString(d.getProfilePhotos()));
                 m.setHeight(d.getHeight());
-                m.setCity(d.getCity());
                 m.setRankOrder(rank++);
+
+                // 지역 세팅: webhook payload에 id가 없으면 matched user의 프로필로 보강
+                Region region = null;
+                Subregion subregion = null;
+
+                if (d.getRegionId() != null) {
+                    region = regionRepository.findById(d.getRegionId())
+                            .orElseThrow(() -> new ResponseStatusException(HttpStatus.BAD_REQUEST, "Invalid regionId in webhook"));
+                }
+                if (d.getSubregionId() != null) {
+                    subregion = subregionRepository.findById(d.getSubregionId())
+                            .orElseThrow(() -> new ResponseStatusException(HttpStatus.BAD_REQUEST, "Invalid subregionId in webhook"));
+                }
+
+                if (region == null || subregion == null) {
+                    UserProfile up = userProfileRepository.findById(d.getUserId())
+                            .orElseThrow(() -> new ResponseStatusException(HttpStatus.BAD_REQUEST, "No user profile for matched user: " + d.getUserId()));
+                    region = up.getRegion();
+                    subregion = up.getSubregion();
+                }
+
+                if (!subregion.getRegion().getId().equals(region.getId())) {
+                    throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "subregion does not belong to region (webhook mismatch)");
+                }
+
+                m.setRegion(region);
+                m.setSubregion(subregion);
+
                 matchRepo.save(m);
             }
+        } catch (ResponseStatusException ex) {
+            throw ex;
         } catch (Exception e) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "잘못된 payload", e);
         }
     }
 
-    // List<Map> → DTO 변환
+    // Python 응답(List<Map>) → DTO 변환
     @SuppressWarnings("unchecked")
     private List<IdealMatchDTO> toDTOList(List raw) {
         List<IdealMatchDTO> out = new ArrayList<>();
@@ -169,13 +248,42 @@ public class IdealMatchingService {
         for (Object o : raw) {
             Map<String, Object> m = (Map<String, Object>) o;
             IdealMatchDTO d = new IdealMatchDTO();
-            d.setUserId((Integer) m.get("user_id"));
-            d.setProfilePhotos((List<String>) m.get("profile_photos"));
-            d.setHeight((Integer) m.get("height"));
-            d.setCity((String) m.get("city"));
+
+            d.setUserId(getAsInteger(m.get("user_id")));
+            d.setProfilePhotos((List<String>) m.getOrDefault("profile_photos", List.of()));
+            d.setHeight(getAsInteger(m.get("height")));
             d.setRank(rank++);
+
+            // ✅ 지역: python이 제공하면 사용, 아니면 null (이후 캐싱 단계에서 프로필로 보강)
+            Long regionId = getAsLong(m.get("region_id"));          // python이 줄 경우
+            Long subregionId = getAsLong(m.get("subregion_id"));    // python이 줄 경우
+            String regionName = getAsString(m.get("region_name"));  // 선택
+            String subregionName = getAsString(m.get("subregion_name"));
+
+            d.setRegionId(regionId);
+            d.setSubregionId(subregionId);
+            d.setRegionName(regionName);
+            d.setSubregionName(subregionName);
+
             out.add(d);
         }
         return out;
+    }
+
+    // ----- helpers -----
+    private Integer getAsInteger(Object v) {
+        if (v == null) return null;
+        if (v instanceof Integer i) return i;
+        if (v instanceof Number n) return n.intValue();
+        return Integer.valueOf(v.toString());
+    }
+    private Long getAsLong(Object v) {
+        if (v == null) return null;
+        if (v instanceof Long l) return l;
+        if (v instanceof Number n) return n.longValue();
+        return Long.valueOf(v.toString());
+    }
+    private String getAsString(Object v) {
+        return v == null ? null : String.valueOf(v);
     }
 }

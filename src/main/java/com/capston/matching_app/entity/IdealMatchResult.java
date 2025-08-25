@@ -28,8 +28,14 @@ public class IdealMatchResult {
 
     private Integer height;
 
-    @Column(length=50)
-    private String city;
+    // 🔽 기존 city(문자열) 제거 → 정규화 FK로 교체
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "region_id", nullable = false)
+    private Region region;             // 시/도
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "subregion_id", nullable = false)
+    private Subregion subregion;       // 시·군·구
 
     @Column(name="rank_order", nullable=false)
     private Integer rankOrder;

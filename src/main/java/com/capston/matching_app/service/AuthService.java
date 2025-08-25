@@ -50,7 +50,7 @@ public class AuthService {
 
         // 가입 시 UserProfile 생성
         UserProfile profile = new UserProfile();
-        profile.setUser(saved); // @MapsId 때문에 userId 자동 매핑
+        profile.setUserId(saved.getUserId()); // @MapsId 때문에 userId 자동 매핑
         userProfileRepository.save(profile);
 
         return new UserResponseDTO(saved.getUserId(), saved.getName(), saved.getEmail(), saved.getPhoneNumber());
