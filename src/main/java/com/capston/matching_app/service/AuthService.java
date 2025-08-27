@@ -62,20 +62,30 @@ public class AuthService {
         Authentication auth = authenticationManager.authenticate(
                 new UsernamePasswordAuthenticationToken(req.getEmail(), req.getPassword()));
 
+        User user = userRepository.findByEmail(req.getEmail())
+                .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 사용자입니다."));
 
         String access = jwtTokenProvider.createAccessToken(req.getEmail(), Map.of(
                 "role", "ROLE_USER",
-                "userId", userRepository.findByEmail(req.getEmail()).get().getUserId()
-        ));
+                "userId", userRepository.findByEmail(req.getEmail()).get().getUserId()));
         String refresh = jwtTokenProvider.createRefreshToken(req.getEmail());
-        return new TokenResponseDTO(access, refresh,"Bearer");
+
+        boolean profileCompleted = userProfileRepository.findById(user.getUserId())
+                .map(UserProfile::isProfileCompleted)
+                .orElse(false);
+        return new TokenResponseDTO(access, refresh,"Bearer", profileCompleted);
     }
 
 
     public TokenResponseDTO refresh(RefreshRequestDTO req) {
         String email = jwtTokenProvider.parse(req.getRefreshToken()).getBody().getSubject();
+        User user = userRepository.findByEmail(email)
+                .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 사용자입니다."));
         String access = jwtTokenProvider.createAccessToken(email, Map.of("role", "ROLE_USER"));
         String refresh = jwtTokenProvider.createRefreshToken(email);
-        return new TokenResponseDTO(access, refresh,"Bearer");
+        boolean profileCompleted = userProfileRepository.findById(user.getUserId())
+                .map(UserProfile::isProfileCompleted)
+                .orElse(false);
+        return new TokenResponseDTO(access, refresh,"Bearer",profileCompleted);
     }
 }

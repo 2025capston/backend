@@ -41,4 +41,7 @@ public class UserProfile {
     @Column(name = "updated_at",
             columnDefinition = "DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP")
     private LocalDateTime updatedAt;
+
+    @Column(name = "profile_completed", nullable = false)
+    private boolean profileCompleted = false;
 }
