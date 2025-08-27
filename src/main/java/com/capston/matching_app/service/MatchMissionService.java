@@ -1,5 +1,6 @@
 package com.capston.matching_app.service;
 
+import com.capston.matching_app.dto.DailyMissionDTO;
 import com.capston.matching_app.entity.DailyMission;
 import com.capston.matching_app.entity.MatchMission;
 import com.capston.matching_app.entity.MatchRequest;
@@ -51,6 +52,21 @@ public class MatchMissionService {
                     .build();
             matchMissionRepository.save(matchMission);
         }
+
+    }
+    //오늘 배정된 미션 조회
+    public DailyMissionDTO getTodayMission(Long matchRequestId) {
+        LocalDate today = LocalDate.now();
+
+        MatchMission matchMission = matchMissionRepository
+                .findByMatchRequestIdAndMissionDate(matchRequestId, today)
+                .orElseThrow(() -> new IllegalStateException("오늘 배정된 미션이 없습니다."));
+
+        return DailyMissionDTO.builder()
+                .matchMissionId(matchMission.getId())
+                .content(matchMission.getDailyMission().getContent())
+                .missionDate(matchMission.getMissionDate())
+                .build();
     }
 
 }
