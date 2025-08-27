@@ -17,4 +17,7 @@ public class FaceEmbeddingRequestDTO {
 
     @NotNull
     private List<Float> embeddingRight;
+
+    @NotNull
+    private List<Float> facenetFront;
 }

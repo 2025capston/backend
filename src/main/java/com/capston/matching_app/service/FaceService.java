@@ -1,8 +1,11 @@
 package com.capston.matching_app.service;
 
+import com.capston.matching_app.dto.FaceEmbeddingRequestDTO;
 import com.capston.matching_app.dto.FaceEmbeddingResponseDTO;
 import com.capston.matching_app.entity.FaceData;
+import com.capston.matching_app.entity.FacenetData;
 import com.capston.matching_app.repository.FaceDataRepository;
+import com.capston.matching_app.repository.FacenetDataRepository;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
@@ -26,11 +29,18 @@ import java.util.Map;
 public class FaceService {
 
     private final FaceDataRepository faceDataRepository;
-    private final UserPhotoService userPhotoService; // same=true 저장에 사용
-    private final ObjectMapper objectMapper = new ObjectMapper();
+    private final FacenetDataRepository facenetDataRepository;
+
+    // same=true 시 사진 저장 등에 사용 (이미 있다면 주입 / 없으면 제거)
+    private final UserPhotoService userPhotoService;
 
     @Value("${external.python.base-url}")
     private String pythonBaseUrl;
+
+    private static final String INSIGHT_EMBED_ENDPOINT   = "/embeddings"; // front/left/right → Insight(3)+FaceNet(1)
+    private static final String INSIGHT_COMPARE_ENDPOINT = "/compare";    // 프로필 vs 저장 임베딩 비교 (InsightFace)
+
+    private final ObjectMapper objectMapper = new ObjectMapper();
 
     private RestTemplate restTemplate() {
         var factory = new org.springframework.http.client.SimpleClientHttpRequestFactory();
@@ -39,8 +49,7 @@ public class FaceService {
         return new RestTemplate(factory);
     }
 
-    // ========== 유틸 ==========
-
+    // ---------- 유틸 ----------
     private HttpEntity<ByteArrayResource> filePart(MultipartFile file, String partName) throws Exception {
         ByteArrayResource resource = new ByteArrayResource(file.getBytes()) {
             @Override public String getFilename() { return file.getOriginalFilename(); }
@@ -70,8 +79,8 @@ public class FaceService {
         catch (Exception e) { throw new RuntimeException("임베딩 역직렬화 실패", e); }
     }
 
-    // ========== Python 연동 ==========
-
+    // ---------- Python 연동 ----------
+    /** 이미지 3장 → Python /embeddings → InsightFace 3 + FaceNet 1 수신 */
     private FaceEmbeddingResponseDTO requestEmbeddingsFromPython(MultipartFile front, MultipartFile left, MultipartFile right) {
         try {
             MultiValueMap<String, Object> body = new LinkedMultiValueMap<>();
@@ -82,7 +91,7 @@ public class FaceService {
             HttpHeaders headers = new HttpHeaders();
             headers.setContentType(MediaType.MULTIPART_FORM_DATA);
 
-            String url = pythonBaseUrl + "/embeddings";
+            String url = pythonBaseUrl + INSIGHT_EMBED_ENDPOINT;
             ResponseEntity<FaceEmbeddingResponseDTO> res =
                     restTemplate().postForEntity(url, new HttpEntity<>(body, headers), FaceEmbeddingResponseDTO.class);
 
@@ -94,11 +103,11 @@ public class FaceService {
             throw new ResponseStatusException(HttpStatus.BAD_GATEWAY,
                     "Python embedding API error: " + ex.getStatusCode() + " - " + ex.getResponseBodyAsString(), ex);
         } catch (Exception e) {
-            throw new ResponseStatusException(HttpStatus.BAD_GATEWAY, "파이썬 서버 연동 실패", e);
+            throw new ResponseStatusException(HttpStatus.BAD_GATEWAY, "파이썬 서버 연동 실패(/embeddings)", e);
         }
     }
 
-    /** threshold는 자바에서 다루지 않음(파이썬에서만 결정) */
+    /** 프로필 이미지 vs 저장 임베딩 비교 (samePerson boolean만 사용) */
     private boolean requestCompareFromPython(MultipartFile profile, List<Float> embF, List<Float> embL, List<Float> embR) {
         try {
             MultiValueMap<String, Object> body = new LinkedMultiValueMap<>();
@@ -110,13 +119,12 @@ public class FaceService {
             HttpHeaders headers = new HttpHeaders();
             headers.setContentType(MediaType.MULTIPART_FORM_DATA);
 
-            String url = pythonBaseUrl + "/compare";
+            String url = pythonBaseUrl + INSIGHT_COMPARE_ENDPOINT;
             ResponseEntity<Map> res = restTemplate().postForEntity(url, new HttpEntity<>(body, headers), Map.class);
 
             if (!res.getStatusCode().is2xxSuccessful() || res.getBody() == null) {
                 throw new ResponseStatusException(HttpStatus.BAD_GATEWAY, "Python compare API failed: " + res.getStatusCode());
             }
-
             Object v = res.getBody().get("samePerson");
             if (v instanceof Boolean b) return b;
             if (v instanceof String s)  return Boolean.parseBoolean(s);
@@ -129,25 +137,71 @@ public class FaceService {
         }
     }
 
-    // ========== DB 연동 ==========
-
+    // ---------- DB 연동 ----------
+    /** (이미지 업로드 경로) front/left/right → /embeddings → 두 테이블 동시 UPSERT */
     @Transactional
-    public void upsertEmbeddingsFromImages(Integer userId, MultipartFile front, MultipartFile left, MultipartFile right) {
+    public void upsertEmbeddingsFromImages(Integer userId,
+                                           MultipartFile front,
+                                           MultipartFile left,
+                                           MultipartFile right) {
+
+        // Python 호출 (Insight 3 + FaceNet 1)
         FaceEmbeddingResponseDTO emb = requestEmbeddingsFromPython(front, left, right);
 
-        FaceData entity = faceDataRepository.findByUserId(userId)
+        // face_data (InsightFace 3개)
+        FaceData fd = faceDataRepository.findByUserId(userId)
                 .orElseGet(() -> {
                     FaceData f = new FaceData();
                     f.setUserId(userId);
                     return f;
                 });
+        fd.setEmbeddingFront(toJson(emb.getEmbeddingFront()));
+        fd.setEmbeddingLeft(toJson(emb.getEmbeddingLeft()));
+        fd.setEmbeddingRight(toJson(emb.getEmbeddingRight()));
+        faceDataRepository.saveAndFlush(fd);
 
-        entity.setEmbeddingFront(toJson(emb.getEmbeddingFront()));
-        entity.setEmbeddingLeft(toJson(emb.getEmbeddingLeft()));
-        entity.setEmbeddingRight(toJson(emb.getEmbeddingRight()));
-        faceDataRepository.saveAndFlush(entity);
+        // facenet_data (FaceNet 정면 1개)
+        // facenet 임베딩은 /embeddings 응답 JSON에 "facenetFront" 키로 포함되어 있어야 함
+        Map<?,?> raw = objectMapper.convertValue(emb, Map.class);
+        Object fnRaw = raw.get("facenetFront");
+        if (fnRaw instanceof List<?> list) {
+            @SuppressWarnings("unchecked")
+            List<Float> fnFront = (List<Float>) list;
+            FacenetData fn = facenetDataRepository.findByUserId(userId)
+                    .orElseGet(() -> FacenetData.builder().userId(userId).build());
+            fn.setEmbeddingFront(toJson(fnFront));
+            facenetDataRepository.saveAndFlush(fn);
+        } else {
+            // facenetFront가 누락됐으면 로그 정도 남기고 넘어가거나, 예외로 처리
+            // throw new ResponseStatusException(HttpStatus.BAD_GATEWAY, "facenetFront 누락");
+        }
     }
 
+    /** (JSON 경로) 클라이언트가 임베딩 배열을 직접 전달 → 두 테이블 동시 UPSERT */
+    @Transactional
+    public void saveEmbeddingsFromClient(FaceEmbeddingRequestDTO dto) {
+        Integer userId = dto.getUserId();
+
+        // face_data
+        FaceData fd = faceDataRepository.findByUserId(userId)
+                .orElseGet(() -> {
+                    FaceData f = new FaceData();
+                    f.setUserId(userId);
+                    return f;
+                });
+        fd.setEmbeddingFront(toJson(dto.getEmbeddingFront()));
+        fd.setEmbeddingLeft(toJson(dto.getEmbeddingLeft()));
+        fd.setEmbeddingRight(toJson(dto.getEmbeddingRight()));
+        faceDataRepository.saveAndFlush(fd);
+
+        // facenet_data
+        FacenetData fn = facenetDataRepository.findByUserId(userId)
+                .orElseGet(() -> FacenetData.builder().userId(userId).build());
+        fn.setEmbeddingFront(toJson(dto.getFacenetFront()));
+        facenetDataRepository.saveAndFlush(fn);
+    }
+
+    /** 조회: userId 기준 저장된 InsightFace 임베딩 3개 반환 */
     @Transactional(readOnly = true)
     public FaceEmbeddingResponseDTO getEmbeddings(Integer userId) {
         return faceDataRepository.findByUserId(userId)
@@ -159,11 +213,14 @@ public class FaceService {
                 .orElse(null);
     }
 
+    /** 삭제: userId 기준 face_data + facenet_data 함께 정리 */
     @Transactional
     public void deleteByUserId(Integer userId) {
         faceDataRepository.deleteByUserId(userId);
+        facenetDataRepository.deleteByUserId(userId);
     }
 
+    /** 비교: 프로필 이미지 vs 저장 임베딩(InsightFace) */
     @Transactional(readOnly = true)
     public boolean compareProfileWithUserEmbeddings(Integer userId, MultipartFile profile) {
         FaceEmbeddingResponseDTO emb = getEmbeddings(userId);
@@ -171,16 +228,13 @@ public class FaceService {
         return requestCompareFromPython(profile, emb.getEmbeddingFront(), emb.getEmbeddingLeft(), emb.getEmbeddingRight());
     }
 
-    /** same=true면 user_photo에 즉시 저장 (isProfile로 대표/앨범 결정) */
+    /** 비교+저장(옵션): 매칭되면 사진 저장 */
     @Transactional
     public boolean compareAndSaveIfMatch(Integer userId, MultipartFile profile, boolean isProfile) {
         boolean same = compareProfileWithUserEmbeddings(userId, profile);
         if (same) {
-            try {
-                userPhotoService.upload(userId, profile, isProfile);
-            } catch (Exception e) {
-                // 저장 실패는 판정 결과와 분리 (로그 권장)
-            }
+            try { userPhotoService.upload(userId, profile, isProfile); }
+            catch (Exception ignored) {}
         }
         return same;
     }

@@ -1,8 +1,10 @@
 package com.capston.matching_app.controller;
 
 import com.capston.matching_app.dto.FaceCompareResultDTO;
+import com.capston.matching_app.dto.FaceEmbeddingRequestDTO;
 import com.capston.matching_app.dto.FaceEmbeddingResponseDTO;
 import com.capston.matching_app.service.FaceService;
+import jakarta.validation.Valid;
 import jakarta.validation.constraints.Min;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.MediaType;
@@ -21,6 +23,7 @@ public class FaceController {
 
     private final FaceService faceService;
 
+    /** 이미지 업로드 → Python /embeddings 호출 → 두 테이블 동시 저장 */
     @PostMapping(value = "/upload", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public ResponseEntity<?> uploadAndEmbed(
             @RequestParam @Min(1) Integer userId,
@@ -38,19 +41,28 @@ public class FaceController {
         return ResponseEntity.ok(Map.of("success", true));
     }
 
+    /** 임베딩(JSON) 직접 등록: FaceEmbeddingRequestDTO → 두 테이블 동시 저장 */
+    @PostMapping(value = "/register-json", consumes = MediaType.APPLICATION_JSON_VALUE)
+    public ResponseEntity<?> registerJson(@Valid @RequestBody FaceEmbeddingRequestDTO dto) {
+        faceService.saveEmbeddingsFromClient(dto);
+        return ResponseEntity.ok(Map.of("success", true));
+    }
+
+    /** 조회: InsightFace 3개 임베딩 반환 */
     @GetMapping("/{userId}")
     public ResponseEntity<?> getEmbeddings(@PathVariable @Min(1) Integer userId) {
         FaceEmbeddingResponseDTO res = faceService.getEmbeddings(userId);
         return (res == null) ? ResponseEntity.notFound().build() : ResponseEntity.ok(res);
     }
 
+    /** 삭제: face_data + facenet_data 함께 삭제 */
     @DeleteMapping("/{userId}")
     public ResponseEntity<?> deleteEmbeddings(@PathVariable @Min(1) Integer userId) {
         faceService.deleteByUserId(userId);
         return ResponseEntity.ok(Map.of("success", true));
     }
 
-    /** 비교 + same=true면 user_photo 저장 (isProfile 기본 false) */
+    /** 비교 + same=true면 사진 저장 (isProfile 기본 false) */
     @PostMapping(value = "/compare", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public ResponseEntity<FaceCompareResultDTO> compare(
             @RequestParam @Min(1) Integer userId,

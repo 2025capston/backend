@@ -13,11 +13,6 @@ public class IdealTypeProfile {
     @Column(name = "user_id")
     private Integer userId;
 
-    @Column(name = "older_than", nullable = false)
-    private Integer olderThan = 0;
-
-    @Column(name = "younger_than", nullable = false)
-    private Integer youngerThan = 0;
 
     // "MALE" | "FEMALE" | "BOTH"
     @Column(name = "matching_gender", nullable = false, length = 10)

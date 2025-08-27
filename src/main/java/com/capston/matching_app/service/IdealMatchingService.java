@@ -27,7 +27,6 @@ import org.springframework.web.server.ResponseStatusException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
-import java.util.NoSuchElementException;
 
 @Service
 @RequiredArgsConstructor
@@ -56,13 +55,14 @@ public class IdealMatchingService {
         return h;
     }
 
-    /** 등록: 사진+성별+범위를 파이썬으로 그대로 포워드(임베딩 저장하지 않음) */
+    /** 등록: 사진+성별만 파이썬으로 포워드(나이 범위 제거, 임베딩 저장 X) */
     @Transactional
-    public void registerAndForward(Integer userId, MultipartFile photo, String matchingGender, Integer olderThan, Integer youngerThan) {
-        // (선택) 로컬에 선호만 저장
-        idealTypeService.savePreferencesOnly(userId, matchingGender, olderThan, youngerThan);
+    public void registerAndForward(Integer userId, MultipartFile photo, String matchingGender) {
+        // (선택) 로컬에 선호만 저장 (나이 범위 제거 버전)
+        idealTypeService.savePreferencesOnly(userId, matchingGender);
 
         try {
+            // 파일 파트
             ByteArrayResource res = new ByteArrayResource(photo.getBytes()) {
                 @Override public String getFilename() { return photo.getOriginalFilename(); }
             };
@@ -73,11 +73,10 @@ public class IdealMatchingService {
             ph.setContentType(mt);
             ph.setContentDispositionFormData("photo", photo.getOriginalFilename());
 
+            // multipart body (userId, matchingGender, photo)
             MultiValueMap<String, Object> body = new LinkedMultiValueMap<>();
             body.add("userId", new HttpEntity<>(String.valueOf(userId), textHeader()));
             body.add("matchingGender", new HttpEntity<>(idealTypeService.normalizeGender(matchingGender), textHeader()));
-            body.add("olderThan", new HttpEntity<>(String.valueOf(Math.max(0, olderThan == null ? 0 : olderThan)), textHeader()));
-            body.add("youngerThan", new HttpEntity<>(String.valueOf(Math.max(0, youngerThan == null ? 0 : youngerThan)), textHeader()));
             body.add("photo", new HttpEntity<>(res, ph));
 
             HttpHeaders headers = new HttpHeaders();
@@ -89,8 +88,11 @@ public class IdealMatchingService {
                 throw new ResponseStatusException(HttpStatus.BAD_GATEWAY, "Python ideal/register failed: " + r.getStatusCode());
             }
         } catch (HttpStatusCodeException ex) {
-            throw new ResponseStatusException(HttpStatus.BAD_GATEWAY,
-                    "Python ideal/register error: " + ex.getStatusCode() + " - " + ex.getResponseBodyAsString(), ex);
+            throw new ResponseStatusException(
+                    HttpStatus.BAD_GATEWAY,
+                    "Python ideal/register error: " + ex.getStatusCode() + " - " + ex.getResponseBodyAsString(),
+                    ex
+            );
         } catch (Exception e) {
             throw new ResponseStatusException(HttpStatus.BAD_GATEWAY, "파이썬 전송 실패(ideal/register)", e);
         }
@@ -166,7 +168,7 @@ public class IdealMatchingService {
             IdealMatchDTO d = new IdealMatchDTO();
             d.setUserId(r.getMatchedUserId());
             try {
-                d.setProfilePhotos(om.readValue(r.getProfilePhotosJson(), new TypeReference<List<String>>(){}));
+                d.setProfilePhotos(om.readValue(r.getProfilePhotosJson(), new TypeReference<List<String>>() {}));
             } catch (Exception ignore) {
                 d.setProfilePhotos(List.of());
             }
@@ -255,9 +257,9 @@ public class IdealMatchingService {
             d.setRank(rank++);
 
             // ✅ 지역: python이 제공하면 사용, 아니면 null (이후 캐싱 단계에서 프로필로 보강)
-            Long regionId = getAsLong(m.get("region_id"));          // python이 줄 경우
-            Long subregionId = getAsLong(m.get("subregion_id"));    // python이 줄 경우
-            String regionName = getAsString(m.get("region_name"));  // 선택
+            Long regionId = getAsLong(m.get("region_id"));
+            Long subregionId = getAsLong(m.get("subregion_id"));
+            String regionName = getAsString(m.get("region_name"));
             String subregionName = getAsString(m.get("subregion_name"));
 
             d.setRegionId(regionId);

@@ -12,17 +12,18 @@ public class IdealTypeService {
 
     private final IdealTypeProfileRepository idealTypeProfileRepository;
 
-    /** 이상형 선호만 저장 (임베딩 저장 없음) */
+    /** 이상형 선호: 성별만 저장 (나이 범위 제거, 임베딩 저장 없음) */
     @Transactional
-    public void savePreferencesOnly(Integer userId, String matchingGender, Integer olderThan, Integer youngerThan) {
-        IdealTypeProfile p = idealTypeProfileRepository.findById(userId).orElseGet(() -> {
-            IdealTypeProfile np = new IdealTypeProfile();
-            np.setUserId(userId);
-            return np;
-        });
+    public void savePreferencesOnly(Integer userId, String matchingGender) {
+        IdealTypeProfile p = idealTypeProfileRepository.findById(userId)
+                .orElseGet(() -> {
+                    IdealTypeProfile np = new IdealTypeProfile();
+                    np.setUserId(userId);
+                    return np; // olderThan/youngerThan 등은 엔티티 기본값/DB 기본값 유지
+                });
+
         p.setMatchingGender(normalizeGender(matchingGender));
-        p.setOlderThan(olderThan != null ? Math.max(0, olderThan) : 0);
-        p.setYoungerThan(youngerThan != null ? Math.max(0, youngerThan) : 0);
+        // ⚠️ 나이 관련 필드는 더 이상 사용하지 않음 → 변경하지 않고 그대로 둡니다.
         idealTypeProfileRepository.save(p);
     }
 
