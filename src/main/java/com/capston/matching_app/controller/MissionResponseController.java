@@ -2,10 +2,14 @@ package com.capston.matching_app.controller;
 
 import com.capston.matching_app.dto.MissionResponseDTO;
 import com.capston.matching_app.entity.MissionResponse;
+import com.capston.matching_app.entity.OutfitSubmission;
 import com.capston.matching_app.service.MissionResponseService;
+import com.capston.matching_app.service.OutfitSubmissionService;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 
 @RestController //REST API 컨트롤러임을 명시 -> Json응답
 @RequestMapping("/mission-response") //API기본 경로 설정
@@ -13,6 +17,7 @@ import org.springframework.web.bind.annotation.*;
 public class MissionResponseController {
 
     private final MissionResponseService missionResponseService;
+    private final OutfitSubmissionService outfitSubmissionService;
 
     @PostMapping
     public ResponseEntity<MissionResponse> submitResponse(
@@ -33,4 +38,16 @@ public class MissionResponseController {
         MissionResponseDTO dto = missionResponseService.getMissionResponses(matchMissionId, userId);
         return ResponseEntity.ok(dto);
     }
+
+    @PostMapping(value = "/outfits/submit", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    public ResponseEntity<OutfitSubmission> submitOutfit(
+            @RequestParam Long matchRequestId,
+            @RequestParam Integer userId,
+            @RequestPart("file") MultipartFile file) {
+
+        OutfitSubmission submission = outfitSubmissionService.submitOutfit(matchRequestId, userId, file);
+        return ResponseEntity.ok(submission);
+    }
+
+
 }

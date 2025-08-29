@@ -8,7 +8,7 @@ import java.time.LocalDateTime;
 
 @Entity
 @Table(name ="outfit_submission", uniqueConstraints = {
-        @UniqueConstraint(columnNames = {"match_id","user_id","submission_date"})
+        @UniqueConstraint(columnNames = {"match_request_id","user_id","submission_date"})
 })
 @Getter
 @Setter
@@ -18,7 +18,7 @@ import java.time.LocalDateTime;
 public class OutfitSubmission {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;
+    private Integer id;
 
     //어떤 매칭에서 제출한 건지
     @ManyToOne(fetch = FetchType.LAZY)
@@ -38,7 +38,7 @@ public class OutfitSubmission {
     @Column(name = "submission_date", nullable = false)
     private LocalDate submissionDate;
 
-    @Column(name = "sumbission_at", nullable = false)
+    @Column(name = "submission_at", nullable = false)
     private LocalDateTime submittedAt;
 
 }

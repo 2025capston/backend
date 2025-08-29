@@ -18,8 +18,11 @@ public class WebConfig implements WebMvcConfigurer {
 
     @Override
     public void addResourceHandlers(ResourceHandlerRegistry registry) {
-        String location = Path.of(baseDir).toAbsolutePath().toUri().toString();
-        String pattern = publicPrefix.endsWith("/**") ? publicPrefix : publicPrefix + "/**";
+        // 디스크 경로 → file: URI 로 변환
+        String location = Path.of(baseDir).toAbsolutePath().toUri().toString(); // ex) file:/var/app/uploads/
+        // 공개 핸들러 패턴
+        String pattern = publicPrefix.endsWith("/**") ? publicPrefix : publicPrefix + "/**"; // ex) /static/user-photos/**
         registry.addResourceHandler(pattern).addResourceLocations(location);
     }
 }
+
