@@ -42,7 +42,7 @@ public class OutfitSubmission {
     @Column(name = "submission_at", nullable = false)
     private LocalDateTime submittedAt;
 
-    //@Column(name="created_at", insertable=false, updatable=false)
-    //private Timestamp createdAt;
+    @Column(name="created_at", insertable=false, updatable=false)
+    private Timestamp createdAt;
 
 }
