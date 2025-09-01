@@ -3,6 +3,7 @@ package com.capston.matching_app.entity;
 import jakarta.persistence.*;
 import lombok.*;
 
+import java.security.Timestamp;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 
@@ -31,7 +32,7 @@ public class OutfitSubmission {
     private User user;
 
     //착장 사진 URL
-    @Column(nullable = false)
+    @Column(name="image_url", nullable = false)
     private String imageUrl;
 
     //제출 날짜 (유니크 조건에 포함 -> 하루 1회 제한)
@@ -40,5 +41,8 @@ public class OutfitSubmission {
 
     @Column(name = "submission_at", nullable = false)
     private LocalDateTime submittedAt;
+
+    //@Column(name="created_at", insertable=false, updatable=false)
+    //private Timestamp createdAt;
 
 }

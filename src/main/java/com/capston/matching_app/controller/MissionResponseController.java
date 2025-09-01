@@ -39,15 +39,5 @@ public class MissionResponseController {
         return ResponseEntity.ok(dto);
     }
 
-    @PostMapping(value = "/outfits/submit", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
-    public ResponseEntity<OutfitSubmission> submitOutfit(
-            @RequestParam Long matchRequestId,
-            @RequestParam Integer userId,
-            @RequestPart("file") MultipartFile file) {
-
-        OutfitSubmission submission = outfitSubmissionService.submitOutfit(matchRequestId, userId, file);
-        return ResponseEntity.ok(submission);
-    }
-
 
 }

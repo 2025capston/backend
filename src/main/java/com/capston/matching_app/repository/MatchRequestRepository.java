@@ -14,12 +14,12 @@ public interface MatchRequestRepository extends JpaRepository<MatchRequest, Long
     // 기존 메서드 유지
     List<MatchRequest> findByStatus(MatchStatus status);
 
-    // ✅ 매치 ID와 참여자 이메일로 권한 검증 겸 조회 (전화번호 전송/조회 API에서 사용)
+    // 매치 ID와 참여자 이메일로 권한 검증 겸 조회 (전화번호 전송/조회 API에서 사용)
     @Query("select m from MatchRequest m " +
             "where m.id = :id and (m.fromUser.email = :email or m.toUser.email = :email)")
     Optional<MatchRequest> findByIdAndParticipantEmail(@Param("id") Long id, @Param("email") String email);
 
-    // ✅ 두 사용자 조합으로 매치 조회(필요 시) - from/to 순서 상관없이
+    // 두 사용자 조합으로 매치 조회(필요 시) - from/to 순서 상관없이
     @Query("select m from MatchRequest m " +
             "where (m.fromUser.userId = :userA and m.toUser.userId = :userB) " +
             "   or (m.fromUser.userId = :userB and m.toUser.userId = :userA)")

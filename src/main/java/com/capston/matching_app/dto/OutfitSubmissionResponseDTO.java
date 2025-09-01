@@ -15,16 +15,17 @@ public class OutfitSubmissionResponseDTO {
     private Integer userId;
     private String imageUrl;
     private LocalDate submissionDate;
-    private LocalDateTime createdAt; // 엔티티 createdAt과 매칭
+    private LocalDateTime submittedAt;
 
-    public static OutfitSubmissionResponse from(OutfitSubmission e) {
-        return new OutfitSubmissionResponse(
+    public static OutfitSubmissionResponseDTO from(OutfitSubmission e) {
+        return new OutfitSubmissionResponseDTO(
                 e.getId(),
-                e.getMatchRequest().getId(),  // MatchRequest PK가 INT라면 Integer
-                e.getUser().getId(),
+                Math.toIntExact(e.getMatchRequest().getId()),
+                e.getUser().getUserId().intValue(), // 타입 맞춰 변환
                 e.getImageUrl(),
                 e.getSubmissionDate(),
-                e.getCreatedAt()
+                e.getSubmittedAt()
         );
     }
 }
+
