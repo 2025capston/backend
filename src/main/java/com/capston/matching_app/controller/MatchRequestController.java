@@ -4,6 +4,7 @@ import com.capston.matching_app.dto.MatchRequestDTO;
 import com.capston.matching_app.dto.PhoneShareResponseDTO;
 import com.capston.matching_app.dto.ScheduleProposalDTO;
 import com.capston.matching_app.entity.User;
+import com.capston.matching_app.security.AuthUserResolver;
 import com.capston.matching_app.service.MatchRequestService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
@@ -19,10 +20,12 @@ import java.util.List;
 public class MatchRequestController {
 
     private final MatchRequestService matchRequestService;
+    private final AuthUserResolver authUser;
 
     @PostMapping
     public MatchRequestDTO createMatchRequest(@RequestBody MatchRequestDTO dto) {
-        User fromUser = User.builder().userId(Math.toIntExact(dto.getFromUserId())).build();
+        Integer fromUserId = authUser.getCurrentUserId();
+        User fromUser = User.builder().userId(fromUserId).build();
         User toUser   = User.builder().userId(Math.toIntExact(dto.getToUserId())).build();
         return matchRequestService.createMatchRequest(dto, fromUser, toUser);
     }
@@ -52,9 +55,9 @@ public class MatchRequestController {
 
     @PostMapping("/{requestId}/cancel")
     public ResponseEntity<Void> cancelMatchRequest(
-            @PathVariable Long requestId,
-            @RequestParam Long userId) {
-        matchRequestService.cancelMatchRequest(requestId, userId);
+            @PathVariable Long requestId) {
+        Integer userId = authUser.getCurrentUserId();
+        matchRequestService.cancelMatchRequest(requestId, userId.longValue());
         return ResponseEntity.ok().build();
     }
 
