@@ -28,4 +28,7 @@ public class MissionResponse {
 
     @Column(name = "submitted_at")
     private LocalDateTime submittedAt;
+
+    @ManyToOne
+    private MatchMission matchMission;
 }
