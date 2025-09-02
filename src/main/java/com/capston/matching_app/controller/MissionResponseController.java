@@ -3,6 +3,7 @@ package com.capston.matching_app.controller;
 import com.capston.matching_app.dto.MissionResponseDTO;
 import com.capston.matching_app.entity.MissionResponse;
 import com.capston.matching_app.service.MissionResponseService;
+import com.capston.matching_app.service.OutfitSubmissionService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -13,6 +14,7 @@ import org.springframework.web.bind.annotation.*;
 public class MissionResponseController {
 
     private final MissionResponseService missionResponseService;
+    private final OutfitSubmissionService outfitSubmissionService;
 
     @PostMapping
     public ResponseEntity<MissionResponse> submitResponse(

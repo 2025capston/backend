@@ -6,7 +6,7 @@ import lombok.*;
 import java.time.LocalDateTime;
 
 @Entity
-@Table(name="mission_response", uniqueConstraints = @UniqueConstraint(columnNames = {"match_mission_id"}))
+@Table(name="mission_response", uniqueConstraints = @UniqueConstraint(columnNames = {"match_mission_id","user_id"}))
 @Getter
 @Setter
 @NoArgsConstructor

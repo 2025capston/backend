@@ -41,3 +41,5 @@ out/
 /uploads/
 ./uploads/
 **/user-photos/
+
+/src/main/resources/application.yml
