@@ -8,11 +8,13 @@ import com.capston.matching_app.entity.MatchStatus;
 import com.capston.matching_app.repository.DailyMissionRepository;
 import com.capston.matching_app.repository.MatchMissionRepository;
 import com.capston.matching_app.repository.MatchRequestRepository;
+import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Random;
 
@@ -27,6 +29,7 @@ public class MatchMissionService {
     private final DailyMissionRepository dailyMissionRepository;
     private final MatchMissionRepository matchMissionRepository;
 
+    @Transactional
     public void assignDailyMission() {
         //1.오늘날짜
         LocalDate today = LocalDate.now();
@@ -42,6 +45,7 @@ public class MatchMissionService {
         List<MatchRequest> confirmedMatches = matchRequestRepository.findByStatus(MatchStatus.CONFIRMED);
 
         //4.각 매칭에 미션 배정
+        /*
         for (MatchRequest match : confirmedMatches) {
             DailyMission selectedMission = missions.get(random.nextInt(missions.size()));
             MatchMission matchMission = MatchMission.builder()
@@ -52,6 +56,20 @@ public class MatchMissionService {
                     .build();
             matchMissionRepository.save(matchMission);
         }
+         */
+        // saveAll - insert를 묶어서 한 번에 처리
+        List<MatchMission> toSave = new ArrayList<>();
+        for (MatchRequest match : confirmedMatches){
+            //오늘 이미 배정됐으면 skip(중복 방어)
+            if (matchMissionRepository.existsByMatchRequest_IdAndMissionDate(match.getId(),today)) continue;
+            toSave.add(MatchMission.builder()
+                    .matchRequest(match)
+                    .dailyMission(missions.get(random.nextInt(missions.size())))
+                    .missionDate(today)
+                    .createdAt(LocalDateTime.now())
+                    .build());
+        }
+        matchMissionRepository.saveAll(toSave);
 
     }
     //오늘 배정된 미션 조회
