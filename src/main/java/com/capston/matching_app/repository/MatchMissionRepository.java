@@ -9,4 +9,5 @@ import java.util.Optional;
 public interface MatchMissionRepository extends JpaRepository<MatchMission, Long> {
     Optional<MatchMission> findByMatchRequestIdAndMissionDate(Long matchRequestId, LocalDate missionDate);
 
+    boolean existsByMatchRequest_IdAndMissionDate(Long id, LocalDate today);
 }
