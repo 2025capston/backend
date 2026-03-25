@@ -39,7 +39,8 @@ public class OutfitSubmission {
     private LocalDateTime createdAt;
 
     // 서비스에서 setSubmittedAt(...) 사용 → DB 컬럼명 submission_at
-    @Column(name = "submission_at", updatable = false)
+    //@Column(name = "submission_at", updatable = false) 재제출 허용
+    @Column(name="submission_at")
     private LocalDateTime submittedAt;
 
     @PrePersist
