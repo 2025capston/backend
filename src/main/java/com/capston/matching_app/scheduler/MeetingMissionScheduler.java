@@ -26,8 +26,12 @@ public class MeetingMissionScheduler {
 
         for (MeetingMissionSchedule schedule : dueSchedules) {
             outfitMissionService.createOutfitMission(schedule.getMatchRequest());
-            schedule.setTriggered(true);
-            scheduleRepository.save(schedule);
+            //schedule.setTriggered(true);
+            //scheduleRepository.save(schedule);
+            int updated = scheduleRepository.markTriggered(schedule.getId());
+            if (updated > 0) {
+                outfitMissionService.createOutfitMission(schedule.getMatchRequest());
+            }
         }
     }
 }
