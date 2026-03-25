@@ -17,7 +17,8 @@ public class CorsConfig {
     public CorsFilter corsFilter() {
         CorsConfiguration config = new CorsConfiguration();
         config.setAllowCredentials(true);
-        config.setAllowedOrigins(List.of("http://localhost:3000", "http://localhost:8081", "*")); // 안드로이드/웹 클라이언트 도메인
+        //config.setAllowedOrigins(List.of("http://localhost:3000", "http://localhost:8081", "*")); // 안드로이드/웹 클라이언트 도메인
+        config.setAllowedOriginPatterns(List.of("*"));
         config.setAllowedHeaders(List.of("*"));
         config.setAllowedMethods(List.of("GET","POST","PUT","DELETE","PATCH","OPTIONS"));
 
