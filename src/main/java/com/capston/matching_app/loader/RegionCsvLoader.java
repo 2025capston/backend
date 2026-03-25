@@ -4,6 +4,7 @@ import com.capston.matching_app.entity.Region;
 import com.capston.matching_app.entity.Subregion;
 import com.capston.matching_app.repository.RegionRepository;
 import com.capston.matching_app.repository.SubregionRepository;
+import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import org.apache.commons.csv.CSVFormat;
 import org.apache.commons.csv.CSVParser;
@@ -30,6 +31,7 @@ public class RegionCsvLoader implements CommandLineRunner {
     private final RegionRepository regionRepository;
     private final SubregionRepository subregionRepository;
 
+    @Transactional
     @Override
     public void run(String... args) throws Exception {
         // 이미 적재되어 있으면 스킵 (재실행 안전)

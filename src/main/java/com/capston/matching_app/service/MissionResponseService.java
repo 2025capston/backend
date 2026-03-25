@@ -21,7 +21,7 @@ public class MissionResponseService {
     private final MatchMissionRepository matchMissionRepository;
     private final UserRepository userRepository;
 
-    public MissionResponse submitResponse(Long matchMissionId, Long userId, String answer){
+    public MissionResponse submitResponse(Long matchMissionId, Integer userId, String answer){
         MatchMission matchMission = matchMissionRepository.findById(matchMissionId)
                 .orElseThrow(()->new IllegalArgumentException("존재하지 않는 매칭 미션입니다."));
 
@@ -38,7 +38,7 @@ public class MissionResponseService {
         return missionResponseRepository.save(response);
     }
 
-    public MissionResponseDTO getMissionResponses (Long matchMissionId, Long userId){
+    public MissionResponseDTO getMissionResponses (Long matchMissionId, Integer userId){
         //1. 해당 미션에 제출된 응답 모두 조회
         List<MissionResponse> responses = missionResponseRepository.findByMatchMissionId(matchMissionId);
 

@@ -22,10 +22,18 @@ public class UserProfileResponseDTO {
         dto.setBirthYear(up.getBirthYear());
         dto.setHeight(up.getHeight());
         dto.setSexualOrientation(up.getSexualOrientation());
-        dto.setRegionId(up.getRegion().getId());
-        dto.setRegionName(up.getRegion().getNameKo());
-        dto.setSubregionId(up.getSubregion().getId());
-        dto.setSubregionName(up.getSubregion().getNameKo());
+
+        var region = up.getRegion();
+        if (region != null) {
+            dto.setRegionId(region.getId());
+            dto.setRegionName(region.getNameKo());
+        }
+
+        var sub = up.getSubregion();
+        if (sub != null) {
+            dto.setSubregionId(sub.getId());
+            dto.setSubregionName(sub.getNameKo());
+        }
         return dto;
     }
 }

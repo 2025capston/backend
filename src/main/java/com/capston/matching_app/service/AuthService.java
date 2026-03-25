@@ -5,6 +5,7 @@ import com.capston.matching_app.entity.User;
 import com.capston.matching_app.entity.UserProfile;
 import com.capston.matching_app.repository.UserProfileRepository;
 import com.capston.matching_app.repository.UserRepository;
+import com.capston.matching_app.security.CustomUserDetails;
 import com.capston.matching_app.security.JwtTokenProvider;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.authentication.AuthenticationManager;
@@ -65,9 +66,15 @@ public class AuthService {
         User user = userRepository.findByEmail(req.getEmail())
                 .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 사용자입니다."));
 
+        //auth.getPrincipal()안에 이미 User정보가 있어 -> DB추가 조회 불필요
+        CustomUserDetails userDetails = (CustomUserDetails) auth.getPrincipal();
+        Integer userId = userDetails.getUserId(); //DB조회없이 꺼냄
+        String email = userDetails.getUsername(); //DB조회 없이 꺼냄
+
         String access = jwtTokenProvider.createAccessToken(req.getEmail(), Map.of(
                 "role", "ROLE_USER",
-                "userId", userRepository.findByEmail(req.getEmail()).get().getUserId()));
+                "userId",userId)); //userId이미 있음
+                //"userId", userRepository.findByEmail(req.getEmail()).get().getUserId()));
         String refresh = jwtTokenProvider.createRefreshToken(req.getEmail());
 
         boolean profileCompleted = userProfileRepository.findById(user.getUserId())

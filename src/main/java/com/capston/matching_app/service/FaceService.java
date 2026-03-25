@@ -31,7 +31,7 @@ public class FaceService {
     private final FaceDataRepository faceDataRepository;
     private final FacenetDataRepository facenetDataRepository;
 
-    // same=true 시 사진 저장 등에 사용 (이미 있다면 주입 / 없으면 제거)
+    // same=true 시 사진 저장 등에 사용
     private final UserPhotoService userPhotoService;
 
     @Value("${external.python.base-url}")
@@ -160,8 +160,7 @@ public class FaceService {
         fd.setEmbeddingRight(toJson(emb.getEmbeddingRight()));
         faceDataRepository.saveAndFlush(fd);
 
-        // facenet_data (FaceNet 정면 1개)
-        // facenet 임베딩은 /embeddings 응답 JSON에 "facenetFront" 키로 포함되어 있어야 함
+        // facenet_data (FaceNet 정면 1개) → Map 변환 후 추출
         Map<?,?> raw = objectMapper.convertValue(emb, Map.class);
         Object fnRaw = raw.get("facenetFront");
         if (fnRaw instanceof List<?> list) {
@@ -171,9 +170,6 @@ public class FaceService {
                     .orElseGet(() -> FacenetData.builder().userId(userId).build());
             fn.setEmbeddingFront(toJson(fnFront));
             facenetDataRepository.saveAndFlush(fn);
-        } else {
-            // facenetFront가 누락됐으면 로그 정도 남기고 넘어가거나, 예외로 처리
-            // throw new ResponseStatusException(HttpStatus.BAD_GATEWAY, "facenetFront 누락");
         }
     }
 

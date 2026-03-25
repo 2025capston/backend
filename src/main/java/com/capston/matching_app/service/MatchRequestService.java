@@ -125,9 +125,11 @@ public class MatchRequestService {
                 || !timeOption.getDateOption().getMatchRequest().getId().equals(request.getId())) {
             throw new IllegalArgumentException("Options do not belong to this request");
         }
-        matchSelectionRepository.save(new MatchSelection(request, dateOption, timeOption, placeOption));
+        //Dirty Checking 활용 : @Transactional 안에서 엔티티 상태 변경하면 메서드 종료될 때 자동으로 DB 반영됨
+        //불필요한 save() 제거
+        //matchSelectionRepository.save(new MatchSelection(request, dateOption, timeOption, placeOption));
         request.setStatus(MatchStatus.CONFIRMED);
-        matchRequestRepository.save(request);
+        //matchRequestRepository.save(request);
     }
 
     @Transactional
@@ -138,7 +140,7 @@ public class MatchRequestService {
             throw new RuntimeException("이미 취소된 매칭입니다.");
         }
         matchRequest.setStatus(MatchStatus.CANCELLED);
-        matchRequestRepository.save(matchRequest);
+        //matchRequestRepository.save(matchRequest);
     }
 
     @Transactional
@@ -146,7 +148,7 @@ public class MatchRequestService {
         MatchRequest request = matchRequestRepository.findById(requestId)
                 .orElseThrow(() -> new RuntimeException("매칭 신청이 존재하지 않습니다."));
         request.setMeetingResult(result != null ? MeetingResult.valueOf(result) : null);
-        matchRequestRepository.save(request);
+        //matchRequestRepository.save(request);
     }
 
     @Transactional
@@ -158,7 +160,7 @@ public class MatchRequestService {
             throw new IllegalStateException("성사된 만남만 유지/해제할 수 있습니다.");
         }
         request.setMatchKeepStatus(status != null ? MatchKeepStatus.valueOf(status) : null);
-        matchRequestRepository.save(request);
+        //matchRequestRepository.save(request);
     }
 
     // ---------- 신규: 전화번호 교환 ----------
