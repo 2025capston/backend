@@ -14,11 +14,20 @@ public class CustomUserDetails implements UserDetails {
     private final String password;
     private final List<SimpleGrantedAuthority> authorities;
 
+    //DB조회용 생성자
     public CustomUserDetails(User user) {
         this.userId = user.getUserId();
         this.email = user.getEmail();
         this.password = user.getPasswordHash();
         this.authorities = List.of(new SimpleGrantedAuthority("ROLE_USER"));
+    }
+
+    //JWT 인증용 생성자
+    public CustomUserDetails(Integer userId, String email, String role) {
+        this.userId = userId;
+        this.email = email;
+        this.password = null;
+        this.authorities = List.of(new SimpleGrantedAuthority(role));
     }
 
     @Override public Collection<? extends GrantedAuthority> getAuthorities() { return authorities; }

@@ -30,7 +30,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
     private static final Logger logger = LoggerFactory.getLogger(JwtAuthenticationFilter.class);
 
     private final JwtTokenProvider jwtTokenProvider;
-    private final CustomUserDetailsService userDetailsService;
+    //private final CustomUserDetailsService userDetailsService;
 
     @Override
     protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain)
@@ -41,23 +41,23 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         if (header != null && header.startsWith("Bearer ")) {
             String token = header.substring(7);
             try {
+
+               //Jwt claims에서 직접 꺼내면 DB조회 없음
                 Claims claims = jwtTokenProvider.parse(token).getBody();
                 String email = claims.getSubject();
+                Integer userId = claims.get("userId",Integer.class);
+                String role = claims.get("role", String.class);
 
                 logger.info("JWT 인증 성공, 사용자: {}", email);
 
-               // UserDetails userDetails = userDetailsService.loadUserByUsername(email);
-                CustomUserDetails customUser = (CustomUserDetails) userDetailsService.loadUserByUsername(email);
-                Integer userId = customUser.getUserId();  // SecurityContext에서 꺼낼 수 있음
+                // loadUserByUsername()내부 -> userRepository.findByEmail(email) ->DB조회 발생
+                CustomUserDetails customUser = new CustomUserDetails(userId, email, role);
 
-                // 기본 ROLE_USER 부여
-                //UsernamePasswordAuthenticationToken auth = new UsernamePasswordAuthenticationToken(
-                //        userDetails,
-                //        null,
-                //        List.of(new SimpleGrantedAuthority("ROLE_USER"))
-                //);
+                //CustomUserDetails customUser = (CustomUserDetails) userDetailsService.loadUserByUsername(email);
+
+
                 UsernamePasswordAuthenticationToken auth = new UsernamePasswordAuthenticationToken(
-                        customUser,  // UserDetails 대신 CustomUserDetails
+                        customUser,
                         null,
                         customUser.getAuthorities()
                 );
